@@ -2,9 +2,14 @@ var express = require('express');
 var server = express();
 var cors = require('cors');
 var path = require('path');
+var cookieParser = require('cookie-parser');
 
 server.use(express.json()); // To parse JSON. If it's not included, req.body will be undefined.
-server.use(cors());
+server.use(cors({
+      origin: 'http://localhost:3000',
+      credentials: true // Allow cookies to be sent
+}));
+server.use(cookieParser()); 
 
 const authRoutes = require('./Routes/Auth');
 server.use('/api/auth', authRoutes);

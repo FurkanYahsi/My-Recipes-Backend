@@ -1,12 +1,10 @@
-var db_users = require('../Databases/db');
-var bcrypt = require('bcrypt');
+const UserService = require('../services/userService/UserService');
 
 exports.signup = async (req, res) => {
   try {
     const { Name, Surname, Username, Email, Password } = req.body;
-    const hashedPassword = await bcrypt.hash(Password, 10);
-    await db_users.query('INSERT INTO users (name, surname, username, email, password) VALUES ($1, $2, $3, $4, $5) RETURNING *', [Name, Surname, Username, Email, hashedPassword]);
-    res.status(201).send("The user has been created successfully");
+    await UserService.createUser({ Name, Surname, Username, Email, Password });
+    res.status(201).send("The user has been created successfully!");
   } catch (err) {
     if (err.code === '23505' && err.detail) { // 23505 is the unique violation error code in PostgreSQL
 
@@ -20,15 +18,15 @@ exports.signup = async (req, res) => {
             return res.status(409).send("This email is already exists!");
         }
     }
-    res.status(500).send("The user could not be created");
+    res.status(500).send("The user could not be created.");
   }
 };
 
 exports.getUsers = async (req, res) => {
   try {
-    const result = await db_users.query('SELECT * FROM users');
-    res.json(result.rows);
+    const users = await UserService.getAllUsers();
+    res.json(users);
   } catch (err) {
-    res.status(500).send("The users could not be retrieved");
+    res.status(500).send("The users could not be retrieved.");
   }
 };
