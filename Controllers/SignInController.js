@@ -1,5 +1,4 @@
 const UserService = require('../services/userService/UserService');
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || "default";
@@ -13,7 +12,7 @@ exports.signin = async (req, res) => {
       return res.status(401).send("This email or username does not match with password.");
     }
 
-    const isPasswordValid = await bcrypt.compare(Password, user.password);
+    const isPasswordValid = await compare(Password, user.password);
 
     if (!isPasswordValid) {
       return res.status(401).send("This email or username does not match with password.");

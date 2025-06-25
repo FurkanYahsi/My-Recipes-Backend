@@ -1,11 +1,9 @@
 const db_users = require('../../Databases/db');
-const bcrypt = require('bcrypt');
 
 exports.createUser = async ({ Name, Surname, Username, Email, Password }) => {
-  const hashedPassword = await bcrypt.hash(Password, 10);
   return db_users.query(
     'INSERT INTO users (name, surname, username, email, password) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-    [Name, Surname, Username, Email, hashedPassword]
+    [Name, Surname, Username, Email, Password]
   );
 };
 
