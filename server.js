@@ -12,7 +12,7 @@ server.use(cors({
 server.use(cookieParser()); 
 
 const authRoutes = require('./Routes/Auth');
-server.use('/api/auth', authRoutes);
+server.use('/auth', authRoutes);
 
 server.use(express.static(path.join(__dirname, '../My-Recipes-Frontend/build')));
 

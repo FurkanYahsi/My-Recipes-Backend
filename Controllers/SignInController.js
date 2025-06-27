@@ -5,7 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "default";
 
 exports.signin = async (req, res) => {
   try {
-    const { EmailorUsername, Password } = req.body; // Password burada hashlenmiş olarak geliyor!
+    const { EmailorUsername, Password } = req.body;
     const user = await UserService.getUserByEmailOrUsername(EmailorUsername);
 
     if (!user) {
