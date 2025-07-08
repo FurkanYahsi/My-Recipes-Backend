@@ -1,4 +1,4 @@
-const db_users = require('../../Databases/db');
+const db_users = require('../../Databases/db_users');
 
 exports.createUser = async ({ Name, Surname, Username, Email, Password }) => {
   return db_users.query(
