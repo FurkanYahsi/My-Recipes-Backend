@@ -3,6 +3,6 @@ const router = express.Router();
 const RecipeController = require('../Controllers/RecipeController');
 const authenticateToken = require('../middlewares/authMiddleware');
 
-router.post('/create-recipe', authenticateToken, RecipeController.createRecipe);
+router.post('/create', authenticateToken, RecipeController.createRecipe);
 
 module.exports = router;
