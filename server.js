@@ -16,6 +16,9 @@ server.use(cors({
 
 // Routes
 const authRoutes = require('./Routes/Auth');
+const recipeRoutes = require('./Routes/Recipe');
+
 server.use('/auth', authRoutes);
+server.use('/recipe', recipeRoutes);
 
 server.listen(3001);

@@ -1,6 +1,6 @@
 const RecipeService = require('../services/recipeService/RecipeService');
 
-exports.addRecipe = async (req, res) => {
+exports.createRecipe = async (req, res) => {
     try {
         const { recipe_name, recipe_ingredients, recipe_instructions, user_id } = req.body;
         const recipe = await RecipeService.createRecipe({ recipe_name, recipe_ingredients, recipe_instructions, user_id});
