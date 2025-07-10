@@ -96,3 +96,23 @@ exports.addBookmarkOrRemoveBookmarkToRecipe = async (req, res) => {
         res.status(500).send("Could not process the 'bookmark/remove bookmark' the recipe.");
     }
 }
+
+exports.getRecipeById = async (req, res) => {
+    const recipe_id = req.params.id;
+    const user_id = req.user?.id; 
+
+    try {
+        const recipe = await RecipeService.getRecipeById(recipe_id);
+        if (!recipe) {
+            return res.status(404).send("Recipe not found.");
+        }
+
+        recipe.is_liked = await RecipeService.checkIfLiked(recipe.id, user_id);
+        recipe.is_bookmarked = await RecipeService.checkIfBookmarked(recipe.id, user_id);
+
+        res.status(200).json(recipe);
+    } catch (err) {
+        console.error("Error fetching recipe by ID:", err);
+        res.status(500).send("Could not retrieve the recipe.");
+    }
+}

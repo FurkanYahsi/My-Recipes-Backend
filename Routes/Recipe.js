@@ -8,5 +8,6 @@ router.post('/:id/like-or-unlike', authenticateToken, RecipeController.likeOrUnl
 router.post('/:id/bookmark-or-remove-bookmark', authenticateToken, RecipeController.addBookmarkOrRemoveBookmarkToRecipe);
 
 router.get('/trends', authenticateToken, RecipeController.getRecipesByPopularity);
+router.get('/:id', authenticateToken, RecipeController.getRecipeById);
 
 module.exports = router;
