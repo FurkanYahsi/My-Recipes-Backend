@@ -54,3 +54,25 @@ exports.checkIfLiked = async (recipe_id, user_id) => {
     );
     return result.rows.length > 0;
 }
+
+exports.addBookmark = async (recipe_id, user_id) => {
+    return db.query(
+        'INSERT INTO recipe_bookmarks (recipe_id, user_id) VALUES ($1, $2) RETURNING *',
+        [recipe_id, user_id]
+    );
+}
+
+exports.removeBookmark = async (recipe_id, user_id) => {
+    return db.query(
+        'DELETE FROM recipe_bookmarks WHERE recipe_id = $1 AND user_id = $2 RETURNING *',
+        [recipe_id, user_id]
+    );
+}
+
+exports.checkIfBookmarked = async (recipe_id, user_id) => {
+    const result = await db.query(
+        'SELECT * FROM recipe_bookmarks WHERE recipe_id = $1 AND user_id = $2',
+        [recipe_id, user_id]
+    );
+    return result.rows.length > 0;
+}
