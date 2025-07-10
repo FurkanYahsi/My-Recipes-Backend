@@ -72,3 +72,26 @@ exports.likeOrUnlikeRecipe = async (req, res) => {
         res.status(500).send("Could not process the like/unlike the recipe.");
     }
 }
+
+exports.addBookmarkOrRemoveBookmarkToRecipe = async (req, res) => {
+    const recipe_id = req.params.id;
+    const user_id = req.params.id;
+
+    if (!user_id) {
+        return res.status(401).send("User authentication required!");
+    }
+
+    try {
+        const bookmarked = await RecipeService.addBookmarkOrRemoveBookmarkToRecipe(recipe_id, user_id);
+        if (bookmarked) {
+            await RecipeService.removeBookmark(recipe_id, user_id);
+            res.status(200).send("Recipe bookmark removed successfully!");
+        } else {
+            await RecipeService.addBookmark(recipe_id, user_id);
+            res.status(200).send("Recipe bookmarked successfully!");
+        }
+    } catch (err) {
+        console.error("Error", err);
+        res.status(500).send("Could not process the 'bookmark/remove bookmark' the recipe.");
+    }
+}
