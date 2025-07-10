@@ -30,6 +30,7 @@ exports.getRecipesByPopularity = async (req, res) => {
               
        for (let recipe of recipes) {
             recipe.is_liked = await RecipeService.checkIfLiked(recipe.id, user_id);
+            recipe.is_bookmarked = await RecipeService.checkIfBookmarked(recipe.id, user_id);
        
             try {
                 const user = await UserService.getUserById(recipe.user_id);                    
@@ -75,14 +76,14 @@ exports.likeOrUnlikeRecipe = async (req, res) => {
 
 exports.addBookmarkOrRemoveBookmarkToRecipe = async (req, res) => {
     const recipe_id = req.params.id;
-    const user_id = req.params.id;
+    const user_id = req.user.id;
 
     if (!user_id) {
         return res.status(401).send("User authentication required!");
     }
 
     try {
-        const bookmarked = await RecipeService.addBookmarkOrRemoveBookmarkToRecipe(recipe_id, user_id);
+        const bookmarked = await RecipeService.checkIfBookmarked(recipe_id, user_id);
         if (bookmarked) {
             await RecipeService.removeBookmark(recipe_id, user_id);
             res.status(200).send("Recipe bookmark removed successfully!");

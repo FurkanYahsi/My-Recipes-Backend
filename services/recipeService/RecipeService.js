@@ -20,14 +20,19 @@ exports.getRecipesByUserId = async (user_id) => {
 exports.getAllRecipesByLikeCount = async () => {
     const result = await db.query(`
     SELECT recipe.*,
-        COALESCE(likes.count, 0) AS like_count
+        COALESCE(likes.count, 0) AS like_count,
+        COALESCE(bookmarks.count, 0) AS bookmark_count
     FROM recipes recipe
     LEFT JOIN (
       SELECT recipe_id, COUNT(*) AS count
       FROM recipe_likes
       GROUP BY recipe_id
-    ) likes 
-    ON likes.recipe_id = recipe.id
+    ) likes ON likes.recipe_id = recipe.id
+    LEFT JOIN (
+      SELECT recipe_id, COUNT(*) AS count
+      FROM recipe_bookmarks
+      GROUP BY recipe_id
+    ) bookmarks ON bookmarks.recipe_id = recipe.id
     ORDER BY like_count DESC;
     `);
     return result.rows;
