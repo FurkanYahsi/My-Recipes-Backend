@@ -7,6 +7,8 @@ router.post('/create', authenticateToken, RecipeController.createRecipe);
 router.post('/:id/like-or-unlike', authenticateToken, RecipeController.likeOrUnlikeRecipe);
 router.post('/:id/bookmark-or-remove-bookmark', authenticateToken, RecipeController.addBookmarkOrRemoveBookmarkToRecipe);
 
+router.post('/:id/comment/create', authenticateToken, RecipeController.createComment);
+
 router.get('/trends', authenticateToken, RecipeController.getRecipesByPopularity);
 router.get('/:id', authenticateToken, RecipeController.getRecipeById);
 

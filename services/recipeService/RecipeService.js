@@ -1,9 +1,9 @@
 const db = require('../../Databases/db');
 
-exports.createRecipe = async ({ recipe_name, recipe_ingredients, recipe_instructions, user_id}) => {
+exports.createRecipe = async ({ recipe_name, recipe_story, recipe_ingredients, recipe_instructions, user_id}) => {
     return db.query(
-        'INSERT INTO recipes (recipe_name, recipe_ingredients, recipe_instructions, user_id) VALUES ($1, $2, $3, $4) RETURNING *',
-        [recipe_name, recipe_ingredients, recipe_instructions, user_id]
+        'INSERT INTO recipes (recipe_name, recipe_story, recipe_ingredients, recipe_instructions, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [recipe_name, recipe_story, recipe_ingredients, recipe_instructions, user_id]
     );
 }
 
@@ -80,4 +80,11 @@ exports.checkIfBookmarked = async (recipe_id, user_id) => {
         [recipe_id, user_id]
     );
     return result.rows.length > 0;
+}
+
+exports.createComment = async (recipe_id, user_id, parent_comment_id, content) => {
+    return db.query(
+        'INSERT INTO recipe_comments (recipe_id, user_id, parent_comment_id, content) VALUES ($1, $2, $3, $4) RETURNING *',
+        [recipe_id, user_id, parent_comment_id, content]
+    );
 }

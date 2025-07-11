@@ -3,7 +3,7 @@ const UserService = require('../services/userService/UserService');
 
 exports.createRecipe = async (req, res) => {
     try {
-        const { recipe_name, recipe_ingredients, recipe_instructions } = req.body;
+        const { recipe_name, recipe_story, recipe_ingredients, recipe_instructions } = req.body;
         const user_id = req.user.id;
 
         if (!recipe_name || !recipe_ingredients || !recipe_instructions) {
@@ -14,7 +14,7 @@ exports.createRecipe = async (req, res) => {
             return res.status(401).send("User authentication required!");
         }
 
-        const recipe = await RecipeService.createRecipe({ recipe_name, recipe_ingredients, recipe_instructions, user_id});
+        const recipe = await RecipeService.createRecipe({ recipe_name, recipe_story, recipe_ingredients, recipe_instructions, user_id});
 
         res.status(201).send("The recipe is shared successfully!");
     } catch (err) {
@@ -114,5 +114,27 @@ exports.getRecipeById = async (req, res) => {
     } catch (err) {
         console.error("Error fetching recipe by ID:", err);
         res.status(500).send("Could not retrieve the recipe.");
+    }
+}
+
+exports.createComment = async (req, res) => {
+    const recipe_id = req.params.id;
+    const user_id = req.user.id;
+    const { parent_comment_id, content } = req.body;
+
+    if (!user_id) {
+        return res.status(401).send("User authentication required!");
+    }
+
+    if (!content) {
+        return res.status(400).send("Comment content is required!");
+    }
+
+    try {
+        const comment = await RecipeService.createComment(recipe_id, user_id, parent_comment_id, content);
+        res.status(201).json(comment.rows[0]);
+    } catch (err) {
+        console.error("Error creating comment:", err);
+        res.status(500).send("Could not create the comment.");
     }
 }
