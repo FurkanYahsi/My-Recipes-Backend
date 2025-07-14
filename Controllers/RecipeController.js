@@ -138,3 +138,73 @@ exports.createComment = async (req, res) => {
         res.status(500).send("Could not create the comment.");
     }
 }
+
+exports.getComments = async (req, res) => {
+    try {
+        const recipe_id = req.params.id;
+        const page = parseInt(req.query.page || '1');
+        const limit = parseInt(req.query.limit || '10');
+        const offset = (page - 1) * limit;
+        const user_id = req.user?.id;
+
+        if (!recipe_id) {
+            return res.status(400).send("Recipe ID is required!");
+        }
+
+        const comments = await RecipeService.getMainCommentsByRecipeId(recipe_id, limit, offset);
+        
+        if (user_id) {
+            for (let comment of comments) {
+                comment.is_liked = await RecipeService.checkIfCommentLiked(comment.id, user_id);
+                
+                try {
+                    const user = await UserService.getUserById(comment.user_id);
+                    comment.username = user.username;
+                } catch (err) {
+                    console.error("Error fetching user for comment:", err);
+                }
+            }
+        }
+        
+        res.status(200).json(comments);
+    } catch (err) {
+        console.error("Error fetching comments:", err);
+        res.status(500).send("Could not retrieve comments.");
+    }
+};
+
+exports.getCommentReplies = async (req, res) => {
+    try {
+        const parent_id = req.query.parent_id;
+        const page = parseInt(req.query.page || '1');
+        const limit = parseInt(req.query.limit || '10');
+        const offset = (page - 1) * limit;
+        const user_id = req.user?.id;
+
+        if (!parent_id) {
+            return res.status(400).send("Parent comment ID is required!");
+        }
+
+        const replies = await RecipeService.getRepliesByParentCommentId(parent_id, limit, offset);
+        
+        // Kullanıcı giriş yapmışsa beğeni durumunu ve kullanıcı adını ekle
+        if (user_id) {
+            for (let reply of replies) {
+                reply.is_liked = await RecipeService.checkIfCommentLiked(reply.id, user_id);
+                
+                try {
+                    const user = await UserService.getUserById(reply.user_id);
+                    reply.username = user.username;
+                } catch (err) {
+                    console.error("Error fetching user for reply:", err);
+                    reply.username = "Anonim";
+                }
+            }
+        }
+        
+        res.status(200).json(replies);
+    } catch (err) {
+        console.error("Error fetching comment replies:", err);
+        res.status(500).send("Could not retrieve comment replies.");
+    }
+};

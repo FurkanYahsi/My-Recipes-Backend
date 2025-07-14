@@ -12,4 +12,8 @@ router.post('/:id/comment/create', authenticateToken, RecipeController.createCom
 router.get('/trends', authenticateToken, RecipeController.getRecipesByPopularity);
 router.get('/:id', authenticateToken, RecipeController.getRecipeById);
 
+router.get('/:id/comments', authenticateToken, RecipeController.getComments);
+router.get('/comments/replies', authenticateToken, RecipeController.getCommentReplies);
+
+
 module.exports = router;
