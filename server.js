@@ -10,7 +10,7 @@ server.use(cookieParser());
 
 // CORS setting: Accept requests from the React development server
 server.use(cors({
-  origin: 'http://localhost:3000', // React dev server address
+  origin: 'https://furkanyahsi.github.io', /*'http://localhost:3000',*/ // React dev server address
   credentials: true                // Allow cookies to be sent
 }));
 
