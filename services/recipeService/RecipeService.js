@@ -117,3 +117,25 @@ exports.getRepliesByParentCommentId = async (parent_comment_id, limit, offset) =
     
     return result.rows;
 };
+
+exports.likeComment = async (comment_id, user_id) => {
+    return db.query(
+        'INSERT INTO comment_likes (comment_id, user_id) VALUES ($1, $2) RETURNING *',
+        [comment_id, user_id]
+    );
+};
+
+exports.unlikeComment = async (comment_id, user_id) => {
+    return db.query(
+        'DELETE FROM comment_likes WHERE comment_id = $1 AND user_id = $2 RETURNING *',
+        [comment_id, user_id]
+    );
+};
+
+exports.checkIfCommentLiked = async (comment_id, user_id) => {
+    const result = await db.query(
+        'SELECT * FROM comment_likes WHERE comment_id = $1 AND user_id = $2',
+        [comment_id, user_id]
+    );
+    return result.rows.length > 0;
+};

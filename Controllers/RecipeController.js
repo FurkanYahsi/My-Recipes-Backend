@@ -208,3 +208,27 @@ exports.getCommentReplies = async (req, res) => {
         res.status(500).send("Could not retrieve comment replies.");
     }
 };
+
+exports.likeOrUnlikeComment = async (req, res) => {
+    try {
+        const comment_id = req.params.id;
+        const user_id = req.user.id;
+
+        if (!user_id) {
+            return res.status(401).send("User authentication required!");
+        }
+
+        const liked = await RecipeService.checkIfCommentLiked(comment_id, user_id);
+        
+        if (liked) {
+            await RecipeService.unlikeComment(comment_id, user_id);
+            res.status(200).json({ liked: false, message: "Comment unliked successfully!" });
+        } else {
+            await RecipeService.likeComment(comment_id, user_id);
+            res.status(200).json({ liked: true, message: "Comment liked successfully!" });
+        }
+    } catch (err) {
+        console.error("Error toggling comment like:", err);
+        res.status(500).send("Could not process the comment like/unlike action.");
+    }
+};
