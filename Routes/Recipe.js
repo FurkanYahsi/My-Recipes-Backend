@@ -14,7 +14,6 @@ router.get('/trends', authenticateToken, RecipeController.getRecipesByPopularity
 router.get('/:id', authenticateToken, RecipeController.getRecipeById);
 
 router.get('/:id/comments', authenticateToken, RecipeController.getComments);
-router.get('/comments/replies', authenticateToken, RecipeController.getCommentReplies);
-
+router.get('/comment/:id/replies', authenticateToken, RecipeController.getCommentReplies);
 
 module.exports = router;

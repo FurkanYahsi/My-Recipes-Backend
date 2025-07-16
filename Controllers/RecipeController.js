@@ -160,6 +160,8 @@ exports.getComments = async (req, res) => {
                 try {
                     const user = await UserService.getUserById(comment.user_id);
                     comment.username = user.username;
+                    comment.user_name = user.name;
+                    comment.user_surname = user.surname;
                 } catch (err) {
                     console.error("Error fetching user for comment:", err);
                 }
@@ -175,19 +177,16 @@ exports.getComments = async (req, res) => {
 
 exports.getCommentReplies = async (req, res) => {
     try {
-        const parent_id = req.query.parent_id;
-        const page = parseInt(req.query.page || '1');
+        const parent_id = req.params.id;
         const limit = parseInt(req.query.limit || '10');
-        const offset = (page - 1) * limit;
         const user_id = req.user?.id;
 
         if (!parent_id) {
             return res.status(400).send("Parent comment ID is required!");
         }
 
-        const replies = await RecipeService.getRepliesByParentCommentId(parent_id, limit, offset);
+        const replies = await RecipeService.getRepliesByParentCommentId(parent_id, limit);
         
-        // Kullanıcı giriş yapmışsa beğeni durumunu ve kullanıcı adını ekle
         if (user_id) {
             for (let reply of replies) {
                 reply.is_liked = await RecipeService.checkIfCommentLiked(reply.id, user_id);

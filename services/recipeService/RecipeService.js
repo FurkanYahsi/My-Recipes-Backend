@@ -103,7 +103,7 @@ exports.getMainCommentsByRecipeId = async (recipe_id, limit, offset) => {
     return result.rows;
 };
 
-exports.getRepliesByParentCommentId = async (parent_comment_id, limit, offset) => {
+exports.getRepliesByParentCommentId = async (parent_comment_id, limit) => {
     const result = await db.query(`
         SELECT comment.*, 
         COUNT(comment_like.id) AS like_count
@@ -112,8 +112,8 @@ exports.getRepliesByParentCommentId = async (parent_comment_id, limit, offset) =
         WHERE comment.parent_comment_id = $1
         GROUP BY comment.id
         ORDER BY comment.created_at ASC
-        LIMIT $2 OFFSET $3
-    `, [parent_comment_id, limit, offset]);
+        LIMIT $2
+    `, [parent_comment_id, limit]);
     
     return result.rows;
 };
