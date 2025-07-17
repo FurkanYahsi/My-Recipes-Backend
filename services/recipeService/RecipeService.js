@@ -105,8 +105,11 @@ exports.createComment = async (recipe_id, user_id, parent_comment_id, content) =
 
 exports.getMainCommentsByRecipeId = async (recipe_id, limit, offset) => {
     const result = await db.query(`
-        SELECT comment.*, 
-        COUNT(comment_like.id) AS like_count
+        SELECT 
+            comment.*,
+            COUNT(DISTINCT comment_like.id) AS like_count,
+            (SELECT COUNT(*) FROM recipe_comments replies 
+             WHERE replies.parent_comment_id = comment.id) AS reply_count
         FROM recipe_comments comment
         LEFT JOIN comment_likes comment_like ON comment.id = comment_like.comment_id
         WHERE comment.recipe_id = $1 AND comment.parent_comment_id IS NULL
