@@ -42,7 +42,6 @@ exports.getRecipesByPopularity = async (req, res) => {
             }
         }
         
-        // console.log("Recipe after adding is_liked:", JSON.stringify(recipes[0]));
         res.status(200).json(recipes);
     } catch (err) {
         console.error("Error fetching recipes by popularity:", err);
@@ -195,9 +194,10 @@ exports.getCommentReplies = async (req, res) => {
                 try {
                     const user = await UserService.getUserById(reply.user_id);
                     reply.username = user.username;
+                    reply.user_name = user.name;
+                    reply.user_surname = user.surname;
                 } catch (err) {
                     console.error("Error fetching user for reply:", err);
-                    reply.username = "Anonim";
                 }
             }
         }
