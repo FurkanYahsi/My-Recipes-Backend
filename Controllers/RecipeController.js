@@ -109,6 +109,7 @@ exports.getRecipeById = async (req, res) => {
 
         recipe.is_liked = await RecipeService.checkIfLiked(recipe.id, user_id);
         recipe.is_bookmarked = await RecipeService.checkIfBookmarked(recipe.id, user_id);
+        recipe.main_comment_count = await RecipeService.getMainCommentCountByRecipeId(recipe_id);
 
         res.status(200).json(recipe);
     } catch (err) {
