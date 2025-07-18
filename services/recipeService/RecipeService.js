@@ -96,10 +96,10 @@ exports.checkIfBookmarked = async (recipe_id, user_id) => {
     return result.rows.length > 0;
 }
 
-exports.createComment = async (recipe_id, user_id, parent_comment_id, content) => {
+exports.createComment = async (recipe_id, user_id, parent_comment_id, content, root_comment_id = null) => {
     return db.query(
-        'INSERT INTO recipe_comments (recipe_id, user_id, parent_comment_id, content) VALUES ($1, $2, $3, $4) RETURNING *',
-        [recipe_id, user_id, parent_comment_id, content]
+        'INSERT INTO recipe_comments (recipe_id, user_id, parent_comment_id, content, root_comment_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [recipe_id, user_id, parent_comment_id, content, root_comment_id]
     );
 }
 
@@ -131,6 +131,21 @@ exports.getRepliesByParentCommentId = async (parent_comment_id, limit) => {
         ORDER BY comment.created_at ASC
         LIMIT $2
     `, [parent_comment_id, limit]);
+    
+    return result.rows;
+};
+
+exports.getRepliesByRootCommentId = async (root_comment_id, limit = 10, offset = 0) => {
+    const result = await db.query(`
+        SELECT comment.*, 
+        COUNT(comment_like.id) AS like_count
+        FROM recipe_comments comment
+        LEFT JOIN comment_likes comment_like ON comment.id = comment_like.comment_id
+        WHERE comment.root_comment_id = $1 AND comment.id != $1
+        GROUP BY comment.id
+        ORDER BY comment.created_at ASC
+        LIMIT $2 OFFSET $3
+    `, [root_comment_id, limit, offset]);
     
     return result.rows;
 };

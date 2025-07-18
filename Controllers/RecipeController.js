@@ -120,7 +120,7 @@ exports.getRecipeById = async (req, res) => {
 exports.createComment = async (req, res) => {
     const recipe_id = req.params.id;
     const user_id = req.user.id;
-    const { parent_comment_id, content } = req.body;
+    const { parent_comment_id, content, root_comment_id } = req.body;
 
     if (!user_id) {
         return res.status(401).send("User authentication required!");
@@ -131,7 +131,7 @@ exports.createComment = async (req, res) => {
     }
 
     try {
-        const comment = await RecipeService.createComment(recipe_id, user_id, parent_comment_id, content);
+        const comment = await RecipeService.createComment(recipe_id, user_id, parent_comment_id, content, root_comment_id);
         res.status(201).json(comment.rows[0]);
     } catch (err) {
         console.error("Error creating comment:", err);
@@ -206,6 +206,43 @@ exports.getCommentReplies = async (req, res) => {
     } catch (err) {
         console.error("Error fetching comment replies:", err);
         res.status(500).send("Could not retrieve comment replies.");
+    }
+};
+
+exports.getRootCommentReplies = async (req, res) => {
+    try {
+        const root_comment_id = req.params.id;
+        const limit = parseInt(req.query.limit || '10');
+        const page = parseInt(req.query.page || '1');
+        const offset = (page - 1) * limit;
+        const user_id = req.user?.id;
+
+        if (!root_comment_id) {
+            return res.status(400).send("Root comment ID is required!");
+        }
+
+        const replies = await RecipeService.getRepliesByRootCommentId(root_comment_id, limit, offset);
+        
+        // Kullanıcı giriş yapmışsa beğeni durumunu kontrol et
+        if (user_id) {
+            for (let reply of replies) {
+                reply.is_liked = await RecipeService.checkIfCommentLiked(reply.id, user_id);
+                
+                try {
+                    const user = await UserService.getUserById(reply.user_id);
+                    reply.username = user.username;
+                    reply.user_name = user.name;
+                    reply.user_surname = user.surname;
+                } catch (err) {
+                    console.error("Error fetching user for reply:", err);
+                }
+            }
+        }
+        
+        res.status(200).json(replies);
+    } catch (err) {
+        console.error("Error fetching root comment replies:", err);
+        res.status(500).send("Could not retrieve replies.");
     }
 };
 

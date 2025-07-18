@@ -15,5 +15,6 @@ router.get('/:id', authenticateToken, RecipeController.getRecipeById);
 
 router.get('/:id/comments', authenticateToken, RecipeController.getComments);
 router.get('/comment/:id/replies', authenticateToken, RecipeController.getCommentReplies);
+router.get('/comment/:id/root-replies', authenticateToken, RecipeController.getRootCommentReplies);
 
 module.exports = router;
