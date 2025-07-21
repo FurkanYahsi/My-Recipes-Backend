@@ -44,6 +44,34 @@ exports.getAllRecipesByLikeCount = async () => {
     return result.rows;
 }
 
+exports.getRecipesByCategory = async (category) => {
+    const result = await db.query(`
+        SELECT recipe.*,
+            COALESCE(likes.count, 0) AS like_count,
+            COALESCE(bookmarks.count, 0) AS bookmark_count,
+            COALESCE(comments.count, 0) AS comment_count
+        FROM recipes recipe
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_likes
+            GROUP BY recipe_id
+        ) likes ON likes.recipe_id = recipe.id
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_bookmarks
+            GROUP BY recipe_id
+        ) bookmarks ON bookmarks.recipe_id = recipe.id
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_comments
+            GROUP BY recipe_id
+        ) comments ON comments.recipe_id = recipe.id
+        WHERE recipe.category = $1
+        ORDER BY like_count DESC;
+    `, [category]);
+    return result.rows;
+};
+
 exports.getMainCommentCountByRecipeId = async (recipe_id) => {
     const result = await db.query(
         'SELECT COUNT(*) FROM recipe_comments WHERE recipe_id = $1 AND parent_comment_id IS NULL',

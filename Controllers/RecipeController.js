@@ -117,6 +117,29 @@ exports.getRecipeById = async (req, res) => {
     }
 }
 
+exports.getRecipesByCategory = async (req, res) => {
+    const category = req.params.category;
+    const user_id = req.user?.id;
+    try {
+        const recipes = await RecipeService.getRecipesByCategory(category);
+        for (let recipe of recipes) {
+            recipe.is_liked = await RecipeService.checkIfLiked(recipe.id, user_id);
+            recipe.is_bookmarked = await RecipeService.checkIfBookmarked(recipe.id, user_id);
+            try {
+                const user = await UserService.getUserById(recipe.user_id);
+                recipe.username = `${user.username}`;
+            } catch (err) {
+                console.error("Error fetching user:", err);
+                recipe.user_name = "Anonim";
+            }
+        }
+        res.status(200).json(recipes);
+    } catch (err) {
+        console.error("Error fetching recipes by category:", err);
+        res.status(500).send("Could not retrieve recipes by category.");
+    }
+}
+
 exports.createComment = async (req, res) => {
     const recipe_id = req.params.id;
     const user_id = req.user.id;
