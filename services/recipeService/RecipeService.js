@@ -1,9 +1,9 @@
 const db = require('../../Databases/db');
 
-exports.createRecipe = async ({ recipe_name, recipe_story, recipe_ingredients, recipe_instructions, user_id}) => {
+exports.createRecipe = async ({ recipe_name, recipe_story, recipe_ingredients, recipe_instructions, category, type, user_id}) => {
     return db.query(
-        'INSERT INTO recipes (recipe_name, recipe_story, recipe_ingredients, recipe_instructions, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [recipe_name, recipe_story, recipe_ingredients, recipe_instructions, user_id]
+        'INSERT INTO recipes (recipe_name, recipe_story, recipe_ingredients, recipe_instructions, category, type, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [recipe_name, recipe_story, recipe_ingredients, recipe_instructions, category, type, user_id]
     );
 }
 
