@@ -12,6 +12,7 @@ router.post('/comment/:id/like-or-unlike', authenticateToken, RecipeController.l
 
 router.get('/trends', authenticateToken, RecipeController.getRecipesByPopularity);
 router.get('/category/:category', authenticateToken, RecipeController.getRecipesByCategory);
+router.get('/type/:type', authenticateToken, RecipeController.getRecipesByType);
 router.get('/:id', authenticateToken, RecipeController.getRecipeById);
 
 router.get('/:id/comments', authenticateToken, RecipeController.getComments);

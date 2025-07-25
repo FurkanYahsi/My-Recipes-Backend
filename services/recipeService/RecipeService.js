@@ -73,6 +73,61 @@ exports.getRecipesByCategory = async (category, limit = 10, offset = 0) => {
     return result.rows;
 };
 
+exports.getRecipesByType = async (type, limit = 10, offset = 0) => {
+    let types = Array.isArray(type) ? type : [type];
+    types = types
+        .map(t => {
+            // If the type is a string, split it by commas and trim whitespace
+            return t.includes(',') ? t.split(',').map(t => t.trim()) : t.trim();
+        })
+        .flat();
+    console.log('Types:', types);
+    
+    let query = `
+        SELECT recipe.*,
+            COALESCE(likes.count, 0) AS like_count,
+            COALESCE(bookmarks.count, 0) AS bookmark_count,
+            COALESCE(comments.count, 0) AS comment_count
+        FROM recipes recipe
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_likes
+            GROUP BY recipe_id
+        ) likes ON likes.recipe_id = recipe.id
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_bookmarks
+            GROUP BY recipe_id
+        ) bookmarks ON bookmarks.recipe_id = recipe.id
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_comments
+            GROUP BY recipe_id
+        ) comments ON comments.recipe_id = recipe.id
+        WHERE `;
+    
+    let params = [];
+    
+    if (types.length === 0) {
+        // If no types are provided, return all recipes
+        query = query.replace('WHERE ', '');
+    } else {
+        // Create a dynamic query for multiple types
+        const placeholders = types.map((_, i) => `$${i+1}`).join(', ');
+        query += `recipe.type LIKE ANY(ARRAY[${placeholders}])`;
+        params = types.map(t => `%${t}%`);
+    }
+    
+    query += ' ORDER BY like_count DESC';
+    
+    // Add limit and offset
+    query += ' LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+    params.push(limit, offset);
+    
+    const result = await db.query(query, params);
+    return result.rows;
+};
+
 exports.getAllRecipesByLikeCount = async () => {
     const result = await db.query(`
     SELECT recipe.*,

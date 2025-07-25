@@ -93,6 +93,45 @@ exports.getRecipesByCategory = async (req, res) => {
     }
 };
 
+exports.getRecipesByType = async (req, res) => {
+    try {
+        const type = req.params.type;
+        const additionalTypes = req.query.types;
+        const page = parseInt(req.query.page || '1');
+        const limit = parseInt(req.query.limit || '10');
+        const offset = (page - 1) * limit;
+        const user_id = req.user?.id;
+        let typeParam;
+
+        // If multiple types are provided, split them
+        if (additionalTypes) {
+            const extraTypes = additionalTypes.split(',').map(t => t.trim());
+            typeParam = [type, ...extraTypes];
+        } else {
+            typeParam = type;
+        }
+        const recipes = await RecipeService.getRecipesByType(typeParam, limit, offset);
+        // Additional user information and like/bookmark status
+        if (user_id) {
+            for (let recipe of recipes) {
+                recipe.is_liked = await RecipeService.checkIfLiked(recipe.id, user_id);
+                recipe.is_bookmarked = await RecipeService.checkIfBookmarked(recipe.id, user_id);
+                try {
+                    const user = await UserService.getUserById(recipe.user_id);
+                    recipe.username = user.username;
+                } catch (err) {
+                    console.error("Error fetching user:", err);
+                    recipe.user_name = "Anonim";
+                }
+            }
+        }
+        res.status(200).json(recipes);
+    } catch (err) {
+        console.error("Error fetching recipes by type:", err);
+        res.status(500).send("Could not retrieve recipes by type.");
+    }
+};
+
 exports.likeOrUnlikeRecipe = async (req, res) => {
     const recipe_id = req.params.id;
     const user_id = req.user.id;
