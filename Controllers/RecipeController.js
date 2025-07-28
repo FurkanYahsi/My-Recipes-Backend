@@ -23,26 +23,31 @@ exports.createRecipe = async (req, res) => {
     }
 };
 
-exports.getRecipesByPopularity = async (req, res) => {
+exports.getRecipesByAllTimePopularity = async (req, res) => {
     try {
-        const recipes = await RecipeService.getAllRecipesByLikeCount();
-        const user_id = req.user?.id; 
-              
-       for (let recipe of recipes) {
-            recipe.is_liked = await RecipeService.checkIfLiked(recipe.id, user_id);
-            recipe.is_bookmarked = await RecipeService.checkIfBookmarked(recipe.id, user_id);
-       
-            try {
-                const user = await UserService.getUserById(recipe.user_id);                    
-                recipe.username = `${user.username}`;                   
-
-            } catch (err) {
-                console.error("Error fetching user:", err);
-                recipe.user_name = "Anonim";
+        const page = parseInt(req.query.page || '1');
+        const limit = parseInt(req.query.limit || '10');
+        const offset = (page - 1) * limit;
+        const user_id = req.user?.id;
+        
+        const result = await RecipeService.getAllRecipesByLikeCount(limit, offset);
+        
+        if (user_id) {
+            for (let recipe of result.recipes) {
+                recipe.is_liked = await RecipeService.checkIfLiked(recipe.id, user_id);
+                recipe.is_bookmarked = await RecipeService.checkIfBookmarked(recipe.id, user_id);
+                
+                try {
+                    const user = await UserService.getUserById(recipe.user_id);
+                    recipe.username = `${user.username}`;
+                } catch (err) {
+                    console.error("Error fetching user:", err);
+                    recipe.user_name = "Anonim";
+                }
             }
         }
         
-        res.status(200).json(recipes);
+        res.status(200).json(result);
     } catch (err) {
         console.error("Error fetching recipes by popularity:", err);
         res.status(500).send("Could not retrieve recipes.");
@@ -200,6 +205,7 @@ exports.getRecipeById = async (req, res) => {
     }
 }
 
+// -------------------------------------- Comment-related methods -------------------------------------- //
 
 exports.createComment = async (req, res) => {
     const recipe_id = req.params.id;

@@ -127,41 +127,46 @@ exports.getRecipesByType = async (type, limit = 10, offset = 0) => {
     const result = await db.query(query, params);
     return result.rows;
 };
-
-exports.getAllRecipesByLikeCount = async () => {
-    const result = await db.query(`
-    SELECT recipe.*,
-        COALESCE(likes.count, 0) AS like_count,
-        COALESCE(bookmarks.count, 0) AS bookmark_count,
-        COALESCE(comments.count, 0) AS comment_count
-    FROM recipes recipe
-    LEFT JOIN (
-      SELECT recipe_id, COUNT(*) AS count
-      FROM recipe_likes
-      GROUP BY recipe_id
-    ) likes ON likes.recipe_id = recipe.id
-    LEFT JOIN (
-      SELECT recipe_id, COUNT(*) AS count
-      FROM recipe_bookmarks
-      GROUP BY recipe_id
-    ) bookmarks ON bookmarks.recipe_id = recipe.id
-    LEFT JOIN (
-      SELECT recipe_id, COUNT(*) AS count
-      FROM recipe_comments
-      GROUP BY recipe_id
-    ) comments ON comments.recipe_id = recipe.id
-    ORDER BY like_count DESC;
-    `);
-    return result.rows;
-}
-
-
-exports.getMainCommentCountByRecipeId = async (recipe_id) => {
-    const result = await db.query(
-        'SELECT COUNT(*) FROM recipe_comments WHERE recipe_id = $1 AND parent_comment_id IS NULL',
-        [recipe_id]
-    );
-    return parseInt(result.rows[0].count, 10);
+exports.getAllRecipesByLikeCount = async (limit = 30, offset = 0) => {
+    const recipesQuery = `
+        SELECT recipe.*,
+            COALESCE(likes.count, 0) AS like_count,
+            COALESCE(bookmarks.count, 0) AS bookmark_count,
+            COALESCE(comments.count, 0) AS comment_count
+        FROM recipes recipe
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_likes
+            GROUP BY recipe_id
+        ) likes ON likes.recipe_id = recipe.id
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_bookmarks
+            GROUP BY recipe_id
+        ) bookmarks ON bookmarks.recipe_id = recipe.id
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_comments
+            GROUP BY recipe_id
+        ) comments ON comments.recipe_id = recipe.id
+        ORDER BY like_count DESC
+        LIMIT $1 OFFSET $2
+    `;
+    
+    const countQuery = `SELECT COUNT(*) AS total FROM recipes`;
+    
+    const [recipesResult, countResult] = await Promise.all([
+        db.query(recipesQuery, [limit, offset]),
+        db.query(countQuery)
+    ]);
+    
+    return {
+        recipes: recipesResult.rows,
+        total: parseInt(countResult.rows[0].total),
+        page: Math.floor(offset / limit) + 1,
+        limit: limit,
+        pages: Math.ceil(parseInt(countResult.rows[0].total) / limit)
+    };
 };
 
 exports.addLike = async (recipe_id, user_id) => {
@@ -207,6 +212,16 @@ exports.checkIfBookmarked = async (recipe_id, user_id) => {
     );
     return result.rows.length > 0;
 }
+
+// -------------------------------------- Comment-related methods -------------------------------------- //
+
+exports.getMainCommentCountByRecipeId = async (recipe_id) => {
+    const result = await db.query(
+        'SELECT COUNT(*) FROM recipe_comments WHERE recipe_id = $1 AND parent_comment_id IS NULL',
+        [recipe_id]
+    );
+    return parseInt(result.rows[0].count, 10);
+};
 
 exports.createComment = async (recipe_id, user_id, parent_comment_id, content, root_comment_id = null) => {
     return db.query(
