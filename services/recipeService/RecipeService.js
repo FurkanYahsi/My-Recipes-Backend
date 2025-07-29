@@ -185,6 +185,36 @@ exports.getTrendRecipes = async (period, limit = 30, offset = 0) => {
     };
 };
 
+exports.getBookmarkedRecipes = async (user_id, limit = 10, offset = 0) => {
+    const query = `
+        SELECT recipe.*,
+            COALESCE(likes.count, 0) AS like_count,
+            COALESCE(bookmarks.count, 0) AS bookmark_count,
+            COALESCE(comments.count, 0) AS comment_count,
+            user_bookmark.saved_at AS bookmarked_at
+        FROM recipes recipe
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_likes
+            GROUP BY recipe_id
+        ) likes ON likes.recipe_id = recipe.id
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_bookmarks
+            GROUP BY recipe_id
+        ) bookmarks ON bookmarks.recipe_id = recipe.id
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_comments
+            GROUP BY recipe_id
+        ) comments ON comments.recipe_id = recipe.id
+        INNER JOIN recipe_bookmarks user_bookmark ON recipe.id = user_bookmark.recipe_id AND user_bookmark.user_id = $1
+        ORDER BY user_bookmark.saved_at DESC
+        LIMIT $2 OFFSET $3
+    `;
+    const result = await db.query(query, [user_id, limit, offset]);
+    return result.rows;
+};
 
 exports.addLike = async (recipe_id, user_id) => {
     return db.query(

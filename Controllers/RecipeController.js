@@ -134,6 +134,34 @@ exports.getRecipesByType = async (req, res) => {
     }
 };
 
+exports.getBookmarkedRecipes = async (req, res) => {
+    try {
+        const user_id = req.user.id;
+        if (!user_id) {
+            return res.status(401).send("User authentication required!");
+        }
+        const recipes = await RecipeService.getBookmarkedRecipes(user_id);
+        if (recipes.length === 0) {
+            return res.status(404).send("No bookmarked recipes found.");
+        }
+        for (let recipe of recipes) {
+            recipe.is_liked = await RecipeService.checkIfLiked(recipe.id, user_id);
+            recipe.is_bookmarked = true; // All recipes in this list are bookmarked
+            try {
+                const user = await UserService.getUserById(recipe.user_id);
+                recipe.username = user.username;
+            } catch (err) {
+                console.error("Error fetching user:", err);
+                recipe.user_name = "Anonim";
+            }
+        }
+        res.status(200).json(recipes);
+    } catch (err) {
+        console.error("Error fetching bookmarked recipes:", err);
+        res.status(500).send("Could not retrieve bookmarked recipes.");
+    }
+};
+
 exports.likeOrUnlikeRecipe = async (req, res) => {
     const recipe_id = req.params.id;
     const user_id = req.user.id;

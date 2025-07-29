@@ -10,6 +10,7 @@ router.post('/:id/bookmark-or-remove-bookmark', authenticateToken, RecipeControl
 router.post('/:id/comment/create', authenticateToken, RecipeController.createComment);
 router.post('/comment/:id/like-or-unlike', authenticateToken, RecipeController.likeOrUnlikeComment);
 
+router.get('/saved-recipes', authenticateToken, RecipeController.getBookmarkedRecipes);
 router.get('/trends/:period', authenticateToken, RecipeController.getTrendRecipes);
 router.get('/category/:category', authenticateToken, RecipeController.getRecipesByCategory);
 router.get('/type/:type', authenticateToken, RecipeController.getRecipesByType);
