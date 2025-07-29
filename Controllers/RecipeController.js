@@ -23,20 +23,18 @@ exports.createRecipe = async (req, res) => {
     }
 };
 
-exports.getRecipesByAllTimePopularity = async (req, res) => {
+exports.getTrendRecipes = async (req, res) => {
     try {
+        const period = req.params.period;
         const page = parseInt(req.query.page || '1');
         const limit = parseInt(req.query.limit || '10');
         const offset = (page - 1) * limit;
         const user_id = req.user?.id;
-        
-        const result = await RecipeService.getAllRecipesByLikeCount(limit, offset);
-        
+        const result = await RecipeService.getTrendRecipes(period, limit, offset);  
         if (user_id) {
             for (let recipe of result.recipes) {
                 recipe.is_liked = await RecipeService.checkIfLiked(recipe.id, user_id);
                 recipe.is_bookmarked = await RecipeService.checkIfBookmarked(recipe.id, user_id);
-                
                 try {
                     const user = await UserService.getUserById(recipe.user_id);
                     recipe.username = `${user.username}`;
@@ -46,11 +44,10 @@ exports.getRecipesByAllTimePopularity = async (req, res) => {
                 }
             }
         }
-        
         res.status(200).json(result);
     } catch (err) {
-        console.error("Error fetching recipes by popularity:", err);
-        res.status(500).send("Could not retrieve recipes.");
+        console.error("Error fetching trend recipes:", err);
+        res.status(500).send("Could not retrieve trend recipes.");
     }
 };
 

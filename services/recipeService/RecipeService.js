@@ -127,7 +127,21 @@ exports.getRecipesByType = async (type, limit = 10, offset = 0) => {
     const result = await db.query(query, params);
     return result.rows;
 };
-exports.getAllRecipesByLikeCount = async (limit = 30, offset = 0) => {
+
+exports.getTrendRecipes = async (period, limit = 30, offset = 0) => {
+    const intervals = {
+        daily: '24 hours',
+        weekly: '7 days',
+        monthly: '30 days',
+        annual: '1 year'
+    };
+
+    const interval = intervals[period];
+    const useInterval = interval !== undefined;
+
+    const whereClause = useInterval ? `WHERE recipe.shared_at >= NOW() - INTERVAL '${interval}'` : '';
+    const countWhereClause = useInterval ? `WHERE shared_at >= NOW() - INTERVAL '${interval}'` : '';
+
     const recipesQuery = `
         SELECT recipe.*,
             COALESCE(likes.count, 0) AS like_count,
@@ -149,25 +163,28 @@ exports.getAllRecipesByLikeCount = async (limit = 30, offset = 0) => {
             FROM recipe_comments
             GROUP BY recipe_id
         ) comments ON comments.recipe_id = recipe.id
+        ${whereClause}
         ORDER BY like_count DESC
         LIMIT $1 OFFSET $2
     `;
-    
-    const countQuery = `SELECT COUNT(*) AS total FROM recipes`;
-    
+
+    const countQuery = `SELECT COUNT(*) AS total FROM recipes ${countWhereClause}`;
+
     const [recipesResult, countResult] = await Promise.all([
         db.query(recipesQuery, [limit, offset]),
-        db.query(countQuery)
+        db.query(countQuery, [])
     ]);
-    
+
+    const total = parseInt(countResult.rows[0].total);
     return {
         recipes: recipesResult.rows,
-        total: parseInt(countResult.rows[0].total),
+        total,
         page: Math.floor(offset / limit) + 1,
-        limit: limit,
-        pages: Math.ceil(parseInt(countResult.rows[0].total) / limit)
+        limit,
+        pages: Math.ceil(total / limit)
     };
 };
+
 
 exports.addLike = async (recipe_id, user_id) => {
     return db.query(
