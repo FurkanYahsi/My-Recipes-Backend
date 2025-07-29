@@ -162,6 +162,43 @@ exports.getBookmarkedRecipes = async (req, res) => {
     }
 };
 
+exports.getLikedRecipes = async (req, res) => {
+    try {
+        const user_id = req.user.id;
+        if (!user_id) {
+            return res.status(401).send("User authentication required!");
+        }
+        
+        const page = parseInt(req.query.page || '1');
+        const limit = parseInt(req.query.limit || '10');
+        const offset = (page - 1) * limit;
+        
+        const recipes = await RecipeService.getLikedRecipes(user_id, limit, offset);
+        
+        if (recipes.length === 0) {
+            return res.status(404).send("No liked recipes found.");
+        }
+        
+        for (let recipe of recipes) {
+            recipe.is_liked = true; // All recipes in this list are liked
+            recipe.is_bookmarked = await RecipeService.checkIfBookmarked(recipe.id, user_id);
+            
+            try {
+                const user = await UserService.getUserById(recipe.user_id);
+                recipe.username = user.username;
+            } catch (err) {
+                console.error("Error fetching user:", err);
+                recipe.user_name = "Anonim";
+            }
+        }
+        
+        res.status(200).json(recipes);
+    } catch (err) {
+        console.error("Error fetching liked recipes:", err);
+        res.status(500).send("Could not retrieve liked recipes.");
+    }
+};
+
 exports.likeOrUnlikeRecipe = async (req, res) => {
     const recipe_id = req.params.id;
     const user_id = req.user.id;

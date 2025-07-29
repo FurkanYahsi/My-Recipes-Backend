@@ -11,6 +11,7 @@ router.post('/:id/comment/create', authenticateToken, RecipeController.createCom
 router.post('/comment/:id/like-or-unlike', authenticateToken, RecipeController.likeOrUnlikeComment);
 
 router.get('/saved-recipes', authenticateToken, RecipeController.getBookmarkedRecipes);
+router.get('/liked-recipes', authenticateToken, RecipeController.getLikedRecipes);
 router.get('/trends/:period', authenticateToken, RecipeController.getTrendRecipes);
 router.get('/category/:category', authenticateToken, RecipeController.getRecipesByCategory);
 router.get('/type/:type', authenticateToken, RecipeController.getRecipesByType);

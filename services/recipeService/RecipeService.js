@@ -216,6 +216,37 @@ exports.getBookmarkedRecipes = async (user_id, limit = 10, offset = 0) => {
     return result.rows;
 };
 
+exports.getLikedRecipes = async (user_id, limit = 10, offset = 0) => {
+    const query = `
+        SELECT recipe.*,
+            COALESCE(likes.count, 0) AS like_count,
+            COALESCE(bookmarks.count, 0) AS bookmark_count,
+            COALESCE(comments.count, 0) AS comment_count,
+            user_like.liked_at AS liked_at
+        FROM recipes recipe
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_likes
+            GROUP BY recipe_id
+        ) likes ON likes.recipe_id = recipe.id
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_bookmarks
+            GROUP BY recipe_id
+        ) bookmarks ON bookmarks.recipe_id = recipe.id
+        LEFT JOIN (
+            SELECT recipe_id, COUNT(*) AS count
+            FROM recipe_comments
+            GROUP BY recipe_id
+        ) comments ON comments.recipe_id = recipe.id
+        INNER JOIN recipe_likes user_like ON recipe.id = user_like.recipe_id AND user_like.user_id = $1
+        ORDER BY user_like.liked_at DESC
+        LIMIT $2 OFFSET $3
+    `;
+    const result = await db.query(query, [user_id, limit, offset]);
+    return result.rows;
+};
+
 exports.addLike = async (recipe_id, user_id) => {
     return db.query(
         'INSERT INTO recipe_likes (recipe_id, user_id) VALUES ($1, $2) RETURNING *',
