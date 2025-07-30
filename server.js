@@ -17,8 +17,10 @@ server.use(cors({
 // Routes
 const authRoutes = require('./Routes/Auth');
 const recipeRoutes = require('./Routes/Recipe');
+const commentRoutes = require('./Routes/Comment');
 
 server.use('/auth', authRoutes);
 server.use('/recipe', recipeRoutes);
+server.use('/comment', commentRoutes);
 
 server.listen(3001);
