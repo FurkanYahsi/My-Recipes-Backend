@@ -75,7 +75,7 @@ exports.getRecipesByCategory = async (req, res) => {
         
         // Additional user information and like/bookmark status
         if (user_id) {
-            for (let recipe of recipes) {
+            for (let recipe of recipes.recipes) {
                 recipe.is_liked = await RecipeService.checkIfLiked(recipe.id, user_id);
                 recipe.is_bookmarked = await RecipeService.checkIfBookmarked(recipe.id, user_id);
                 
@@ -116,7 +116,7 @@ exports.getRecipesByType = async (req, res) => {
         const recipes = await RecipeService.getRecipesByType(typeParam, limit, offset);
         // Additional user information and like/bookmark status
         if (user_id) {
-            for (let recipe of recipes) {
+            for (let recipe of recipes.recipes) {
                 recipe.is_liked = await RecipeService.checkIfLiked(recipe.id, user_id);
                 recipe.is_bookmarked = await RecipeService.checkIfBookmarked(recipe.id, user_id);
                 try {
@@ -142,10 +142,10 @@ exports.getBookmarkedRecipes = async (req, res) => {
             return res.status(401).send("User authentication required!");
         }
         const recipes = await RecipeService.getBookmarkedRecipes(user_id);
-        if (recipes.length === 0) {
+        if (recipes.recipes.length === 0) {
             return res.status(404).send("No bookmarked recipes found.");
         }
-        for (let recipe of recipes) {
+        for (let recipe of recipes.recipes) {
             recipe.is_liked = await RecipeService.checkIfLiked(recipe.id, user_id);
             recipe.is_bookmarked = true; // All recipes in this list are bookmarked
             try {
@@ -176,11 +176,11 @@ exports.getLikedRecipes = async (req, res) => {
         
         const recipes = await RecipeService.getLikedRecipes(user_id, limit, offset);
         
-        if (recipes.length === 0) {
+        if (recipes.recipes.length === 0) {
             return res.status(404).send("No liked recipes found.");
         }
         
-        for (let recipe of recipes) {
+        for (let recipe of recipes.recipes) {
             recipe.is_liked = true; // All recipes in this list are liked
             recipe.is_bookmarked = await RecipeService.checkIfBookmarked(recipe.id, user_id);
             

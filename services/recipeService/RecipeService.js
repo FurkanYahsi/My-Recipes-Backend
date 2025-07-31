@@ -19,113 +19,150 @@ exports.getRecipesByUserId = async (user_id) => {
 
 exports.getRecipesByCategory = async (category, limit = 10, offset = 0) => {
 
-    let categories = Array.isArray(category) ? category : [category];
-    categories = categories
-        .map(cat => {
-            // If the category is a string, split it by commas and trim whitespace
-            return cat.includes(',') ? cat.split(',').map(c => c.trim()) : cat.trim();
-        })
-        .flat();
-    console.log('Category:', categories);
-    let query = `
-        SELECT recipe.*,
-            COALESCE(likes.count, 0) AS like_count,
-            COALESCE(bookmarks.count, 0) AS bookmark_count,
-            COALESCE(comments.count, 0) AS comment_count
-        FROM recipes recipe
-        LEFT JOIN (
-            SELECT recipe_id, COUNT(*) AS count
-            FROM recipe_likes
-            GROUP BY recipe_id
-        ) likes ON likes.recipe_id = recipe.id
-        LEFT JOIN (
-            SELECT recipe_id, COUNT(*) AS count
-            FROM recipe_bookmarks
-            GROUP BY recipe_id
-        ) bookmarks ON bookmarks.recipe_id = recipe.id
-        LEFT JOIN (
-            SELECT recipe_id, COUNT(*) AS count
-            FROM recipe_comments
-            GROUP BY recipe_id
-        ) comments ON comments.recipe_id = recipe.id
-        WHERE `;
-    
-    let params = [];
+    try {
+        let categories = Array.isArray(category) ? category : [category];
+        categories = categories
+            .map(cat => {
+                // If the category is a string, split it by commas and trim whitespace
+                return cat.includes(',') ? cat.split(',').map(c => c.trim()) : cat.trim();
+            })
+            .flat();
         
-    if (categories.length === 0) {
-        // If no categories are provided, return all recipes
-        query = query.replace('WHERE ', '');
-    } else {
-        // Create a dynamic query for multiple categories
-        const placeholders = categories.map((_, i) => `$${i+1}`).join(', ');
-        query += `recipe.category LIKE ANY(ARRAY[${placeholders}])`;
-        params = categories.map(cat => `%${cat}%`);
+        let query = `
+            SELECT recipe.*,
+                COALESCE(likes.count, 0) AS like_count,
+                COALESCE(bookmarks.count, 0) AS bookmark_count,
+                COALESCE(comments.count, 0) AS comment_count
+            FROM recipes recipe
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_likes
+                GROUP BY recipe_id
+            ) likes ON likes.recipe_id = recipe.id
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_bookmarks
+                GROUP BY recipe_id
+            ) bookmarks ON bookmarks.recipe_id = recipe.id
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_comments
+                GROUP BY recipe_id
+            ) comments ON comments.recipe_id = recipe.id`;
+        
+        let whereClause = '';
+        let queryParams = [];
+            
+        if (categories.length === 0) {
+            // No filter
+        } else {
+            // Add WHERE clause
+            whereClause = ` WHERE recipe.category LIKE ANY(ARRAY[${categories.map((_, i) => `$${i+1}`).join(', ')}])`;
+            query += whereClause;
+            queryParams = categories.map(cat => `%${cat}%`);
+        }
+        
+        query += ' ORDER BY like_count DESC';
+        query += ` LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+        
+        // Final params for main query
+        const finalQueryParams = [...queryParams, limit, offset];
+        
+        // Separate count query (safer approach)
+        let countQuery = 'SELECT COUNT(*) AS total FROM recipes recipe';
+        if (whereClause) {
+            countQuery += whereClause;
+        }
+        
+        // Execute queries sequentially to avoid parameter issues
+        const recipesResult = await db.query(query, finalQueryParams);
+        const countResult = await db.query(countQuery, queryParams);
+        
+        const total = parseInt(countResult.rows[0]?.total || '0');
+        
+        return {
+            recipes: recipesResult.rows,
+            total,
+        };
+    } catch (error) {
+        console.error('Error in getRecipesByCategory:', error);
+        throw error;
     }
-    
-    
-    query += ' ORDER BY like_count DESC';
-    
-    // Limit and offset
-    query += ' LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
-    params.push(limit, offset);
-    
-    const result = await db.query(query, params);
-    return result.rows;
 };
 
 exports.getRecipesByType = async (type, limit = 10, offset = 0) => {
-    let types = Array.isArray(type) ? type : [type];
-    types = types
-        .map(t => {
-            // If the type is a string, split it by commas and trim whitespace
-            return t.includes(',') ? t.split(',').map(t => t.trim()) : t.trim();
-        })
-        .flat();
-    console.log('Types:', types);
-    
-    let query = `
-        SELECT recipe.*,
-            COALESCE(likes.count, 0) AS like_count,
-            COALESCE(bookmarks.count, 0) AS bookmark_count,
-            COALESCE(comments.count, 0) AS comment_count
-        FROM recipes recipe
-        LEFT JOIN (
-            SELECT recipe_id, COUNT(*) AS count
-            FROM recipe_likes
-            GROUP BY recipe_id
-        ) likes ON likes.recipe_id = recipe.id
-        LEFT JOIN (
-            SELECT recipe_id, COUNT(*) AS count
-            FROM recipe_bookmarks
-            GROUP BY recipe_id
-        ) bookmarks ON bookmarks.recipe_id = recipe.id
-        LEFT JOIN (
-            SELECT recipe_id, COUNT(*) AS count
-            FROM recipe_comments
-            GROUP BY recipe_id
-        ) comments ON comments.recipe_id = recipe.id
-        WHERE `;
-    
-    let params = [];
-    
-    if (types.length === 0) {
-        // If no types are provided, return all recipes
-        query = query.replace('WHERE ', '');
-    } else {
+    try {
+        let types;
+        
+        // Split the type parameter if it's a string or flatten it if it's an array
+        if (typeof type === 'string') {
+            types = type.split(',').map(t => t.trim());
+        } else if (Array.isArray(type)) {
+            types = type.flat();
+        } else {
+            types = [];
+        }
+                
+        let query = `
+            SELECT recipe.*,
+                COALESCE(likes.count, 0) AS like_count,
+                COALESCE(bookmarks.count, 0) AS bookmark_count,
+                COALESCE(comments.count, 0) AS comment_count
+            FROM recipes recipe
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_likes
+                GROUP BY recipe_id
+            ) likes ON likes.recipe_id = recipe.id
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_bookmarks
+                GROUP BY recipe_id
+            ) bookmarks ON bookmarks.recipe_id = recipe.id
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_comments
+                GROUP BY recipe_id
+            ) comments ON comments.recipe_id = recipe.id`;
+        
+        let queryParams = [];
+        let placeholders = [];
+        
         // Create a dynamic query for multiple types
-        const placeholders = types.map((_, i) => `$${i+1}`).join(', ');
-        query += `recipe.type LIKE ANY(ARRAY[${placeholders}])`;
-        params = types.map(t => `%${t}%`);
+        if (types.length > 0) {
+            for (let i = 0; i < types.length; i++) {
+                queryParams.push(`%${types[i]}%`);
+                placeholders.push(`$${i+1}`);
+            }
+            
+            query += ` WHERE recipe.type ILIKE ANY(ARRAY[${placeholders.join(', ')}])`;
+        }
+        
+        // Add ordering and pagination
+        query += ' ORDER BY like_count DESC';
+        query += ` LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+        
+        queryParams.push(limit, offset);
+        
+        // Count query
+        let countQuery = 'SELECT COUNT(*) AS total FROM recipes recipe';
+        if (types.length > 0) {
+            countQuery += ` WHERE type ILIKE ANY(ARRAY[${placeholders.join(', ')}])`;
+        }
+        
+        const [recipesResult, countResult] = await Promise.all([
+            db.query(query, queryParams),
+            db.query(countQuery, queryParams.slice(0, -2)) // exclude limit and offset from count query
+        ]);
+        
+        return {
+            recipes: recipesResult.rows,
+            total: parseInt(countResult.rows[0].total),
+        };
+    } catch (error) {
+        console.error('Error in getRecipesByType:', error);
+        throw error;
     }
-    
-    query += ' ORDER BY like_count DESC';
-    
-    // Add limit and offset
-    query += ' LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
-    params.push(limit, offset);
-    
-    const result = await db.query(query, params);
-    return result.rows;
 };
 
 exports.getTrendRecipes = async (period, limit = 30, offset = 0) => {
@@ -186,65 +223,104 @@ exports.getTrendRecipes = async (period, limit = 30, offset = 0) => {
 };
 
 exports.getBookmarkedRecipes = async (user_id, limit = 10, offset = 0) => {
-    const query = `
-        SELECT recipe.*,
-            COALESCE(likes.count, 0) AS like_count,
-            COALESCE(bookmarks.count, 0) AS bookmark_count,
-            COALESCE(comments.count, 0) AS comment_count,
-            user_bookmark.saved_at AS bookmarked_at
-        FROM recipes recipe
-        LEFT JOIN (
-            SELECT recipe_id, COUNT(*) AS count
-            FROM recipe_likes
-            GROUP BY recipe_id
-        ) likes ON likes.recipe_id = recipe.id
-        LEFT JOIN (
-            SELECT recipe_id, COUNT(*) AS count
+    try {
+        const query = `
+            SELECT recipe.*,
+                COALESCE(likes.count, 0) AS like_count,
+                COALESCE(bookmarks.count, 0) AS bookmark_count,
+                COALESCE(comments.count, 0) AS comment_count,
+                user_bookmark.saved_at AS bookmarked_at
+            FROM recipes recipe
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_likes
+                GROUP BY recipe_id
+            ) likes ON likes.recipe_id = recipe.id
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_bookmarks
+                GROUP BY recipe_id
+            ) bookmarks ON bookmarks.recipe_id = recipe.id
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_comments
+                GROUP BY recipe_id
+            ) comments ON comments.recipe_id = recipe.id
+            INNER JOIN recipe_bookmarks user_bookmark ON recipe.id = user_bookmark.recipe_id AND user_bookmark.user_id = $1
+            ORDER BY user_bookmark.saved_at DESC
+            LIMIT $2 OFFSET $3
+        `;
+        
+        // Basic count query (to reduce complexity)
+        const countQuery = `
+            SELECT COUNT(*) AS total 
             FROM recipe_bookmarks
-            GROUP BY recipe_id
-        ) bookmarks ON bookmarks.recipe_id = recipe.id
-        LEFT JOIN (
-            SELECT recipe_id, COUNT(*) AS count
-            FROM recipe_comments
-            GROUP BY recipe_id
-        ) comments ON comments.recipe_id = recipe.id
-        INNER JOIN recipe_bookmarks user_bookmark ON recipe.id = user_bookmark.recipe_id AND user_bookmark.user_id = $1
-        ORDER BY user_bookmark.saved_at DESC
-        LIMIT $2 OFFSET $3
-    `;
-    const result = await db.query(query, [user_id, limit, offset]);
-    return result.rows;
+            WHERE user_id = $1
+        `;
+        
+        const recipesResult = await db.query(query, [user_id, limit, offset]);
+        const countResult = await db.query(countQuery, [user_id]);
+        
+        const total = parseInt(countResult.rows[0]?.total || '0');
+        
+        return {
+            recipes: recipesResult.rows,
+            total,
+        };
+    } catch (error) {
+        console.error('Error in getBookmarkedRecipes:', error);
+        throw error;
+    }
 };
 
 exports.getLikedRecipes = async (user_id, limit = 10, offset = 0) => {
-    const query = `
-        SELECT recipe.*,
-            COALESCE(likes.count, 0) AS like_count,
-            COALESCE(bookmarks.count, 0) AS bookmark_count,
-            COALESCE(comments.count, 0) AS comment_count,
-            user_like.liked_at AS liked_at
-        FROM recipes recipe
-        LEFT JOIN (
-            SELECT recipe_id, COUNT(*) AS count
+    try {
+        const query = `
+            SELECT recipe.*,
+                COALESCE(likes.count, 0) AS like_count,
+                COALESCE(bookmarks.count, 0) AS bookmark_count,
+                COALESCE(comments.count, 0) AS comment_count,
+                user_like.liked_at AS liked_at
+            FROM recipes recipe
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_likes
+                GROUP BY recipe_id
+            ) likes ON likes.recipe_id = recipe.id
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_bookmarks
+                GROUP BY recipe_id
+            ) bookmarks ON bookmarks.recipe_id = recipe.id
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_comments
+                GROUP BY recipe_id
+            ) comments ON comments.recipe_id = recipe.id
+            INNER JOIN recipe_likes user_like ON recipe.id = user_like.recipe_id AND user_like.user_id = $1
+            ORDER BY user_like.liked_at DESC
+            LIMIT $2 OFFSET $3
+        `;
+        
+        const countQuery = `
+            SELECT COUNT(*) AS total 
             FROM recipe_likes
-            GROUP BY recipe_id
-        ) likes ON likes.recipe_id = recipe.id
-        LEFT JOIN (
-            SELECT recipe_id, COUNT(*) AS count
-            FROM recipe_bookmarks
-            GROUP BY recipe_id
-        ) bookmarks ON bookmarks.recipe_id = recipe.id
-        LEFT JOIN (
-            SELECT recipe_id, COUNT(*) AS count
-            FROM recipe_comments
-            GROUP BY recipe_id
-        ) comments ON comments.recipe_id = recipe.id
-        INNER JOIN recipe_likes user_like ON recipe.id = user_like.recipe_id AND user_like.user_id = $1
-        ORDER BY user_like.liked_at DESC
-        LIMIT $2 OFFSET $3
-    `;
-    const result = await db.query(query, [user_id, limit, offset]);
-    return result.rows;
+            WHERE user_id = $1
+        `;
+        
+        const recipesResult = await db.query(query, [user_id, limit, offset]);
+        const countResult = await db.query(countQuery, [user_id]);
+        
+        const total = parseInt(countResult.rows[0]?.total || '0');
+        
+        return {
+            recipes: recipesResult.rows,
+            total,
+        };
+    } catch (error) {
+        console.error('Error in getLikedRecipes:', error);
+        throw error;
+    }
 };
 
 exports.addLike = async (recipe_id, user_id) => {
