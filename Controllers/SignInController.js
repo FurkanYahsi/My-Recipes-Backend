@@ -16,7 +16,7 @@ exports.signin = async (req, res) => {
       return res.status(400).send("This email or username does not match with password.");
     }
 
-    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
 
     res.cookie('access_token', token, {
       httpOnly: true,
@@ -32,7 +32,8 @@ exports.signin = async (req, res) => {
         name: user.name,
         surname: user.surname,
         username: user.username,
-        email: user.email
+        email: user.email,
+        role: user.role
       }
     });
   } catch (err) {

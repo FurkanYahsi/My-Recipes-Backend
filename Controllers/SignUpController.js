@@ -6,10 +6,10 @@ const JWT_SECRET = process.env.JWT_SECRET || "default";
 
 exports.signup = async (req, res) => {
   try {
-    const { Name, Surname, Username, Email, Password } = req.body;
-    const user = await UserService.createUser({ Name, Surname, Username, Email, Password });
+    const { Name, Surname, Username, Email, Password, Role = 'user' } = req.body;
+    const user = await UserService.createUser({ Name, Surname, Username, Email, Password, Role });
 
-    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: user.rows[0].id, username: user.rows[0].username, role: user.rows[0].role }, JWT_SECRET, { expiresIn: '1h' });
     
     res.cookie('access_token', token, {
       httpOnly: true,
@@ -33,14 +33,5 @@ exports.signup = async (req, res) => {
         }
     }
     res.status(500).send("The user could not be created.");
-  }
-};
-
-exports.getUsers = async (req, res) => {
-  try {
-    const users = await UserService.getAllUsers();
-    res.json(users);
-  } catch (err) {
-    res.status(500).send("The users could not be retrieved.");
   }
 };
