@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authenticateToken = require('../middlewares/authMiddleware');
+const authorize = require('../middlewares/roleMiddleware');
 
 const RecipeController = require('../Controllers/RecipeController');
 
@@ -15,4 +16,6 @@ router.get('/category/:category', authenticateToken, RecipeController.getRecipes
 router.get('/type/:type', authenticateToken, RecipeController.getRecipesByType);
 router.get('/:id', authenticateToken, RecipeController.getRecipeById);
 
+router.put('/:id/edit', authenticateToken, RecipeController.editRecipe);
+router.delete('/:id/delete', authenticateToken, RecipeController.deleteRecipe);
 module.exports = router;
