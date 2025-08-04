@@ -12,10 +12,57 @@ exports.getRecipeById = async (recipe_id) => {
     return result.rows[0];
 }
 
-exports.getRecipesByUserId = async (user_id) => {
-    const result = await db.query('SELECT * FROM recipes WHERE user_id = $1', [user_id]);
-    return result.rows;
-}
+exports.getRecipesByUserId = async (user_id, limit = 10, offset = 0) => {
+    try {
+        const query = `
+            SELECT recipe.*,
+                COALESCE(likes.count, 0) AS like_count,
+                COALESCE(bookmarks.count, 0) AS bookmark_count,
+                COALESCE(comments.count, 0) AS comment_count
+            FROM recipes recipe
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_likes
+                GROUP BY recipe_id
+            ) likes ON likes.recipe_id = recipe.id
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_bookmarks
+                GROUP BY recipe_id
+            ) bookmarks ON bookmarks.recipe_id = recipe.id
+            LEFT JOIN (
+                SELECT recipe_id, COUNT(*) AS count
+                FROM recipe_comments
+                GROUP BY recipe_id
+            ) comments ON comments.recipe_id = recipe.id
+            WHERE recipe.user_id = $1
+            ORDER BY recipe.shared_at DESC
+            LIMIT $2 OFFSET $3
+        `;
+        
+        const countQuery = `
+            SELECT COUNT(*) AS total 
+            FROM recipes
+            WHERE user_id = $1
+        `;
+        
+        const recipesResult = await db.query(query, [user_id, limit, offset]);
+        const countResult = await db.query(countQuery, [user_id]);
+        
+        const total = parseInt(countResult.rows[0]?.total || '0');
+        
+        return {
+            recipes: recipesResult.rows,
+            total,
+            page: Math.floor(offset / limit) + 1,
+            limit,
+            pages: Math.ceil(total / limit) || 1
+        };
+    } catch (error) {
+        console.error('Error in getRecipesByUserId:', error);
+        throw error;
+    }
+};
 
 exports.getRecipesByCategory = async (category, limit = 10, offset = 0) => {
 

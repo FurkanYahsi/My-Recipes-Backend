@@ -9,6 +9,7 @@ router.post('/create', authenticateToken, RecipeController.createRecipe);
 router.post('/:id/like-or-unlike', authenticateToken, RecipeController.likeOrUnlikeRecipe);
 router.post('/:id/bookmark-or-remove-bookmark', authenticateToken, RecipeController.addBookmarkOrRemoveBookmarkToRecipe);
 
+router.get('/user-recipes', authenticateToken, RecipeController.getRecipeByUserId);
 router.get('/saved-recipes', authenticateToken, RecipeController.getBookmarkedRecipes);
 router.get('/liked-recipes', authenticateToken, RecipeController.getLikedRecipes);
 router.get('/trends/:period', authenticateToken, RecipeController.getTrendRecipes);

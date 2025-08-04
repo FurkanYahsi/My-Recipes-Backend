@@ -24,6 +24,42 @@ exports.createRecipe = async (req, res) => {
     }
 };
 
+exports.getRecipeByUserId = async (req, res) => {
+    try {
+        const user_id = req.user.id;
+        if (!user_id) {
+            return res.status(401).send("User authentication required!");
+        }
+        
+        const page = parseInt(req.query.page || '1');
+        const limit = parseInt(req.query.limit || '10');
+        const offset = (page - 1) * limit;
+        
+        const result = await RecipeService.getRecipesByUserId(user_id, limit, offset);
+        
+        if (result.recipes.length === 0) {
+            return res.status(404).send("No recipes found for this user.");
+        }
+        
+        for (let recipe of result.recipes) {
+            recipe.is_liked = await RecipeService.checkIfLiked(recipe.id, user_id);
+            recipe.is_bookmarked = await RecipeService.checkIfBookmarked(recipe.id, user_id);
+            try {
+                const user = await UserService.getUserById(recipe.user_id);
+                recipe.username = user.username;
+            } catch (err) {
+                console.error("Error fetching user:", err);
+                recipe.user_name = "Anonim";
+            }
+        }
+        
+        res.status(200).json(result);
+    } catch (err) {
+        console.error("Error fetching recipes by user ID:", err);
+        res.status(500).send("Could not retrieve recipes by user ID.");
+    }
+};
+
 exports.getTrendRecipes = async (req, res) => {
     try {
         const period = req.params.period;
