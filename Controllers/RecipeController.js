@@ -267,3 +267,64 @@ exports.getRecipeById = async (req, res) => {
         res.status(500).send("Could not retrieve the recipe.");
     }
 }
+
+exports.editRecipe = async (req, res) => {
+  try {
+    const recipe_id = req.params.id;
+    const user_id = req.user.id;
+    const userRole = req.user.role;
+    const { recipe_name, recipe_story, recipe_ingredients, recipe_instructions, category, type } = req.body;
+    
+    const existingRecipe = await RecipeService.getRecipeById(recipe_id);
+    if (!existingRecipe) {
+      return res.status(404).send("Recipe not found");
+    }
+    
+    // Only admin, editor or the recipe owner can edit the recipe
+    if (userRole !== 'admin' && userRole !== 'editor' && existingRecipe.user_id !== user_id) {
+      return res.status(403).send("You can only edit your own recipes");
+    }
+    
+    const updatedRecipeResult = await RecipeService.updateRecipe(recipe_id, {
+      recipe_name, 
+      recipe_story, 
+      recipe_ingredients, 
+      recipe_instructions, 
+      category, 
+      type
+    });
+    
+    res.status(200).json({
+      message: "Recipe updated successfully",
+      recipe: updatedRecipeResult.rows[0]
+    });
+  } catch (err) {
+    console.error("Error updating recipe:", err);
+    res.status(500).send("Could not update the recipe");
+  }
+};
+
+exports.deleteRecipe = async (req, res) => {
+  try {
+    const recipe_id = req.params.id;
+    const user_id = req.user.id;
+    const userRole = req.user.role;
+    
+    const existingRecipe = await RecipeService.getRecipeById(recipe_id);
+    if (!existingRecipe) {
+      return res.status(404).send("Recipe not found");
+    }
+    
+    // Only admin, editor or the recipe owner can delete the recipe
+    if (userRole !== 'admin' && userRole !== 'editor' && existingRecipe.user_id !== user_id) {
+      return res.status(403).send("You can only delete your own recipes");
+    }
+    
+    await RecipeService.deleteRecipe(recipe_id);
+    
+    res.status(200).send("Recipe deleted successfully");
+  } catch (err) {
+    console.error("Error deleting recipe:", err);
+    res.status(500).send("Could not delete the recipe");
+  }
+};
