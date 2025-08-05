@@ -414,19 +414,18 @@ exports.checkIfBookmarked = async (recipe_id, user_id) => {
     return result.rows.length > 0;
 }
 
-exports.updateRecipe = async (recipe_id, { recipe_name, recipe_story, recipe_ingredients, recipe_instructions, category, type }) => {
+exports.updateRecipe = async (recipe_id, recipe_name, recipe_story, recipe_ingredients, recipe_instructions, category, type ) => {
   return db.query(
     `UPDATE recipes 
-     SET recipe_name = $1, 
-         recipe_story = $2, 
-         recipe_ingredients = $3, 
-         recipe_instructions = $4, 
-         category = $5, 
-         type = $6, 
-         updated_at = NOW()
-     WHERE id = $7 
+     SET recipe_name = $2, 
+         recipe_story = $3, 
+         recipe_ingredients = $4, 
+         recipe_instructions = $5, 
+         category = $6, 
+         type = $7
+     WHERE id = $1
      RETURNING *`,
-    [recipe_name, recipe_story, recipe_ingredients, recipe_instructions, category, type, recipe_id]
+    [recipe_id, recipe_name, recipe_story, recipe_ingredients, recipe_instructions, category, type]
   );
 };
 

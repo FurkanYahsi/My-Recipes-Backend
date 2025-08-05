@@ -321,14 +321,7 @@ exports.editRecipe = async (req, res) => {
       return res.status(403).send("You can only edit your own recipes");
     }
     
-    const updatedRecipeResult = await RecipeService.updateRecipe(recipe_id, {
-      recipe_name, 
-      recipe_story, 
-      recipe_ingredients, 
-      recipe_instructions, 
-      category, 
-      type
-    });
+    const updatedRecipeResult = await RecipeService.updateRecipe(recipe_id, recipe_name, recipe_story, recipe_ingredients, recipe_instructions, category, type);
     
     res.status(200).json({
       message: "Recipe updated successfully",
